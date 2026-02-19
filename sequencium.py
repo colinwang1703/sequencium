@@ -14,6 +14,14 @@ from typing import List, Tuple, Optional, Set
 from copy import deepcopy
 from enum import Enum
 
+# Try to import the C++ search engine for better performance
+try:
+    import search_engine as cpp_engine
+    CPP_AVAILABLE = True
+except ImportError:
+    CPP_AVAILABLE = False
+    cpp_engine = None
+
 
 class Player(Enum):
     """Enumeration for players"""
@@ -176,15 +184,23 @@ class GameBoard:
 class SequenciumAI:
     """AI player using Minimax with Alpha-Beta pruning"""
     
-    def __init__(self, max_depth: int = 4):
+    def __init__(self, max_depth: int = 4, use_cpp: bool = True):
         """
         Initialize the AI
         
         Args:
             max_depth: Maximum search depth for minimax
+            use_cpp: Use C++ backend if available (default: True)
         """
         self.max_depth = max_depth
         self.nodes_evaluated = 0
+        self.use_cpp = use_cpp and CPP_AVAILABLE
+        
+        # Initialize C++ engine if available and requested
+        if self.use_cpp:
+            self.cpp_engine = cpp_engine.SearchEngine()
+        else:
+            self.cpp_engine = None
     
     def evaluate_position(self, board: GameBoard, player: Player) -> float:
         """
@@ -286,6 +302,38 @@ class SequenciumAI:
         if not valid_moves:
             return None
         
+        # Use C++ backend if available
+        if self.use_cpp and self.cpp_engine is not None:
+            try:
+                # Convert player enum to int (A=1, B=2)
+                player_id = player.value
+                
+                # Convert board to format C++ expects: list of lists with (player_id, value) tuples
+                converted_board = []
+                for row in board.board:
+                    converted_row = []
+                    for cell in row:
+                        if cell is None:
+                            converted_row.append(None)
+                        else:
+                            player_obj, value = cell
+                            # Convert Player enum to int
+                            converted_row.append((player_obj.value, value))
+                    converted_board.append(converted_row)
+                
+                # Call C++ search
+                row, col, value, nodes = self.cpp_engine.find_best_move(
+                    converted_board, board.size, player_id, self.max_depth
+                )
+                
+                self.nodes_evaluated = nodes
+                return (row, col, value)
+            except Exception as e:
+                # Fall back to Python implementation on error
+                print(f"Warning: C++ engine failed ({e}), falling back to Python")
+                self.use_cpp = False
+        
+        # Fall back to Python implementation
         _, best_move = self.minimax(board, self.max_depth, float('-inf'), float('inf'), True, player)
         
         return best_move
@@ -382,6 +430,13 @@ def main():
 ║              Based on Walter Joris' Game                 ║
 ╚══════════════════════════════════════════════════════════╝
     """)
+    
+    # Show C++ availability
+    if CPP_AVAILABLE:
+        print("✓ C++ search engine available (optimized)")
+    else:
+        print("⚠ C++ search engine not available, using Python implementation")
+    print()
     
     # Parse command line arguments
     board_size = 6
