@@ -165,7 +165,7 @@ class GameBoard:
                 else:
                     player, value = cell
                     symbol = "A" if player == Player.A else "B"
-                    row_str += f"{symbol}{value:1d}" if value < 10 else f"{symbol}{value}"
+                    row_str += f"{symbol}{value:2d}"
             row_str += "|"
             result.append(row_str)
         
