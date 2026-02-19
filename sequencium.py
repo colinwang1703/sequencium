@@ -10,9 +10,14 @@ This implementation includes:
 """
 
 import sys
+import logging
 from typing import List, Tuple, Optional, Set
 from copy import deepcopy
 from enum import Enum
+
+# Configure logging
+logging.basicConfig(level=logging.INFO, format='%(levelname)s: %(message)s')
+logger = logging.getLogger(__name__)
 
 # Try to import the C++ search engine for better performance
 try:
@@ -330,7 +335,7 @@ class SequenciumAI:
                 return (row, col, value)
             except Exception as e:
                 # Fall back to Python implementation on error
-                print(f"Warning: C++ engine failed ({e}), falling back to Python")
+                logger.warning(f"C++ engine failed, falling back to Python: {e}")
                 self.use_cpp = False
         
         # Fall back to Python implementation

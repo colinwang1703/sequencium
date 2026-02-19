@@ -80,14 +80,20 @@ struct TTEntry {
 // Transposition table
 class TranspositionTable {
 private:
-    static constexpr size_t TABLE_SIZE = 1048576;  // 1M entries
+    size_t table_size;
     std::vector<TTEntry> table;
     
 public:
-    TranspositionTable() : table(TABLE_SIZE) {}
+    TranspositionTable(size_t size = 1048576) : table_size(size), table(size) {}
+    
+    void resize(size_t new_size) {
+        table_size = new_size;
+        table.clear();
+        table.resize(new_size);
+    }
     
     void store(uint64_t hash, int depth, int score, int flag, const Move& move) {
-        size_t index = hash % TABLE_SIZE;
+        size_t index = hash % table_size;
         TTEntry& entry = table[index];
         
         // Replace if deeper or empty
@@ -101,7 +107,7 @@ public:
     }
     
     bool probe(uint64_t hash, int depth, int& score, Move& move) {
-        size_t index = hash % TABLE_SIZE;
+        size_t index = hash % table_size;
         const TTEntry& entry = table[index];
         
         if (entry.hash == hash && entry.depth >= depth) {
@@ -114,7 +120,7 @@ public:
     
     void clear() {
         table.clear();
-        table.resize(TABLE_SIZE);
+        table.resize(table_size);
     }
 };
 
@@ -226,6 +232,38 @@ private:
         }
     }
     
+    // Fast mobility count (count potential moves without generating full move list)
+    int count_mobility(const BoardState& board, int player) const {
+        bool visited[MAX_BOARD_SIZE][MAX_BOARD_SIZE] = {};
+        int count = 0;
+        
+        for (int i = 0; i < board.size; ++i) {
+            for (int j = 0; j < board.size; ++j) {
+                int cell = board.board[i][j];
+                if (cell > 0 && get_player(cell) == player) {
+                    // Check all 8 neighbors
+                    for (int dr = -1; dr <= 1; ++dr) {
+                        for (int dc = -1; dc <= 1; ++dc) {
+                            if (dr == 0 && dc == 0) continue;
+                            
+                            int nr = i + dr;
+                            int nc = j + dc;
+                            
+                            if (nr >= 0 && nr < board.size && 
+                                nc >= 0 && nc < board.size && 
+                                board.board[nr][nc] == 0 && !visited[nr][nc]) {
+                                
+                                visited[nr][nc] = true;
+                                count++;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        return count;
+    }
+    
     // Evaluate position
     int evaluate(const BoardState& board, int player) const {
         int opponent = (player == PLAYER_A) ? PLAYER_B : PLAYER_A;
@@ -249,9 +287,8 @@ private:
         }
         int cell_diff = player_cells - opponent_cells;
         
-        // Tertiary: mobility
-        int mobility_diff = generate_moves(board, player).size() - 
-                          generate_moves(board, opponent).size();
+        // Tertiary: mobility (use fast count)
+        int mobility_diff = count_mobility(board, player) - count_mobility(board, opponent);
         
         return max_diff * 100 + cell_diff * 10 + mobility_diff;
     }

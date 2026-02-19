@@ -57,8 +57,14 @@ If you get compiler errors:
    g++ --version  # Should be 7.0 or later
    ```
 
-2. Try without `-march=native`:
-   Edit `setup.py` and remove `-march=native` from `extra_compile_args`.
+2. **Portability note**: The default build uses `-march=native` which optimizes for your CPU but may not work on other machines. If you need to distribute the compiled library, edit `setup.py` and change:
+   ```python
+   extra_compile_args=['-std=c++17', '-O3', '-march=native', '-ffast-math'],
+   ```
+   to:
+   ```python
+   extra_compile_args=['-std=c++17', '-O3'],
+   ```
 
 3. Check pybind11 installation:
    ```bash
