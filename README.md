@@ -96,6 +96,13 @@ python3 sequencium.py 6 5  # 6x6 board, depth 5 search
 python3 sequencium.py 6 4 interactive
 ```
 
+### Performance Demo
+```bash
+python3 demo.py
+```
+
+This shows a side-by-side comparison of Python vs C++ performance.
+
 ## Command-Line Arguments
 
 ```

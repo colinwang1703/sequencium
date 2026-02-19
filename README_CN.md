@@ -96,6 +96,13 @@ python3 sequencium.py 6 5  # 6x6 棋盘，深度 5 搜索
 python3 sequencium.py 6 4 interactive
 ```
 
+### 性能演示
+```bash
+python3 demo.py
+```
+
+这会显示 Python 与 C++ 性能的并排比较。
+
 ## 命令行参数
 
 ```
